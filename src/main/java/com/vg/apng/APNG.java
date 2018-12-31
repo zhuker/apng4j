@@ -1,6 +1,7 @@
 package com.vg.apng;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 
 public class APNG {
@@ -11,10 +12,14 @@ public class APNG {
     public static final int fcTL_SIG = 0x6663544c;
     public static final int IEND_SIG = 0x49454e44;
 
-    public static final byte[] PNG_SIG = new byte[]{(byte) 0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a}; //http://www.w3.org/TR/PNG/#5PNG-file-signature
+    public static final byte[] PNG_SIG = new byte[] {(byte) 0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a}; //http://www.w3.org/TR/PNG/#5PNG-file-signature
 
-    public static void write(Gray[] grays, File file) throws IOException {
-        new APNGWriter().write(grays, file);
+    public static void write(Gray[] grays, File file, int loopCount) throws IOException {
+        new APNGWriter().write(grays, file, loopCount);
+    }
+
+    public static void write(Gray[] grays, FileOutputStream fileOutputStream, int loopCount) throws IOException {
+        new APNGWriter().write(grays, fileOutputStream, loopCount);
     }
 
     public static Gray[] read(File file) throws IOException {

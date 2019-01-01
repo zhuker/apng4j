@@ -34,5 +34,5 @@ Gray[] gr = APNG.read(new File("my.apng"));
 
 ![resulting images](result.jpg)
 
-![resulting animated image](result.apng)
+![resulting animated image](result.png)
 

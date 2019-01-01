@@ -16,23 +16,73 @@ import java.nio.channels.FileChannel.MapMode;
 
 import javax.imageio.ImageIO;
 
+/**
+ * Represent a grayscale image.
+ */
 public class Gray {
 
-    public final int width;
-    public final int height;
-    public final ByteBuffer data;
+    private final int width;
+    private final int height;
+    private final ByteBuffer data;
+    // Defaults to 1s
+    private int delayms = 1000;
 
-    public Gray(int width, int height, ByteBuffer data) {
+    /**
+     * Create a new Gray from info and data.
+     * @param width the image width
+     * @param height the image height
+     * @param data a buffer containing the pixel data
+     * @param delay the delay to put between this image and the next
+     */
+    public Gray(int width, int height, ByteBuffer data, int delay) {
         if (width * height > data.capacity()) {
             throw new IllegalArgumentException();
         }
         this.width = width;
         this.height = height;
         this.data = (ByteBuffer) data.duplicate().clear();
+        this.setDelay(delay);
+    }
+
+    /**
+     * Create a new Gray from info and data.
+     * @param width the image width
+     * @param height the image height
+     * @param data a buffer containing the pixel data
+     * @param delay the delay to put between this image and the next
+     */
+    public Gray(int width, int height, byte[] data, int delay) {
+        this(width, height, wrap(data), delay);
     }
 
     public Gray(int width, int height) {
-        this(width, height, ByteBuffer.allocate(width * height));
+        this(width, height, APNG.DELAY_1S);
+    }
+
+    public Gray(int width, int height, ByteBuffer bb) {
+        this(width, height, bb, APNG.DELAY_1S);
+    }
+
+    public Gray(int width, int height, byte[] data) {
+        this(width, height, data, APNG.DELAY_1S);
+    }
+
+    /**
+     * Create a new Gray from its info
+     * @param width the image width
+     * @param height the image height
+     * @param delay the delay to put between this image and the next
+     */
+    public Gray(int width, int height, int delay) {
+        this(width, height, ByteBuffer.allocate(width * height), delay);
+    }
+	
+	public int getDelay() {
+        return delayms;
+    }
+
+    public void setDelay(int delay) {
+        this.delayms = delay;
     }
     
     public byte getPixel(int x, int y) {
@@ -182,14 +232,13 @@ public class Gray {
     }
 
     /**
-     * Bilinear resize grayscale image. Target dimension is w * h.
-     * 
-     * w * h cannot be zero.
+     * Bilinear resize grayscale image. Target dimension is w * h. Dimension cannot be null
      * 
      * @param w
      *            New width.
      * @param h
      *            New height.
+     * @return the resized image.
      */
     public Gray scaleBilinear(int w, int h) {
         ByteBuffer srcPix = getData();
@@ -251,7 +300,11 @@ public class Gray {
         return new Gray(width, height, dest);
     }
 
-    /** Wraps underlying data */
+    /**
+     * Extract a Gray from a BufferedImage by wrapping its underlying data.
+     * @param b the BufferedImage to wrap
+     * @return a grayscale image
+     */
     public static Gray fromBufferedImage(BufferedImage b) {
         BufferedImage g = b;
         if (b.getType() != BufferedImage.TYPE_BYTE_GRAY) {
@@ -262,6 +315,10 @@ public class Gray {
         return new Gray(b.getWidth(), b.getHeight(), wrap(data));
     }
 
+    /**
+     * Convert this grayscale image to a BufferedImage.
+     * @return the converted BufferedImage.
+     */
     public BufferedImage toBufferedImage() {
         BufferedImage b = new BufferedImage(this.getWidth(), this.getHeight(), BufferedImage.TYPE_BYTE_GRAY);
         byte[] data = ((DataBufferByte) b.getRaster().getDataBuffer()).getData();

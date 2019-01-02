@@ -2,7 +2,6 @@ package com.vg.apng;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.ByteBuffer;
 
 import org.junit.Assert;
 import org.junit.Test;
@@ -26,13 +25,13 @@ public class APNGTest {
                 x, 0, x };
 
         Gray[] g = new Gray[] {
-                new Gray(3, 3, ByteBuffer.wrap(a0)),
-                new Gray(3, 4, ByteBuffer.wrap(a1)),
-                new Gray(3, 3, ByteBuffer.wrap(a2))};
+                new Gray(3, 3, a0, APNG.DELAY_1S),
+                new Gray(3, 4, a1, APNG.DELAY_1S),
+                new Gray(3, 3, a2, APNG.DELAY_1S)};
 
         File file = new File("ab.png");
         file.deleteOnExit();
-        APNG.write(g, file);
+        APNG.write(g, file, APNG.INFINITE_LOOP);
         Gray[] gr = APNG.read(file);
 
         Assert.assertEquals(3, gr.length);

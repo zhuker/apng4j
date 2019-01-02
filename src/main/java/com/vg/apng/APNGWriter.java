@@ -7,10 +7,11 @@ import static com.vg.apng.APNG.acTL_SIG;
 import static com.vg.apng.APNG.fcTL_SIG;
 import static com.vg.apng.APNG.fdAT_SIG;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.OutputStream;
 import java.io.IOException;
+import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
 import java.nio.channels.WritableByteChannel;
@@ -18,6 +19,12 @@ import java.util.zip.CRC32;
 import java.util.zip.Deflater;
 import java.util.zip.DeflaterOutputStream;
 
+/**
+ * Create APNG from grayscale images.
+ *
+ * @see APNGWriter#write(Gray[], File, int)
+ * @see APNGWriter#write(Gray[], OutputStream, int)
+ */
 class APNGWriter {
     public static final byte ZERO = 0;
 
@@ -36,27 +43,49 @@ class APNGWriter {
     public static final int fcTL_TOTAL_LEN = fcTL_DATA_LEN + CHUNK_DELTA;
 
     private static final byte[] IEND_ARR = new byte[] {
-            0,	  0,   0,   0,
+            0,    0,   0,   0,
             'I', 'E', 'N', 'D',
             (byte) 0xae, 0x42,
             0x60, (byte) 0x82 //ae4260820
     };
 
-    public void write(Gray[] grays, File file) throws IOException {
+    /**
+     * Write an APNG image to a file.
+     * @param grays the grayscale images to write
+     * @param file the File to write to
+     * @param loopCount the number of time to loop the animation (0 means infinite)
+     * @throws IOException if the specified File is invalid
+     */
+    public void write(Gray[] grays, File file, int loopCount) throws IOException {
+        write(grays, new FileOutputStream(file), loopCount);
+    }
+
+    /**
+     * Write an APNG image to a FileOutputStream.
+     * @param grays the grayscale images to write
+     * @param os the OutputStream to write to
+     * @param loopCount the number of time to loop the animation (0 means infinite)
+     * @throws IOException if the specified OutputStream is invalid
+     */
+    public void write(Gray[] grays, OutputStream os, int loopCount) throws IOException {
         if (grays.length <= 0) {
             throw new RuntimeException("grays[] is empty");
         }
 
-        WritableByteChannel out = new FileOutputStream(file).getChannel();
+        WritableByteChannel out = Channels.newChannel(os);
+        
         try {
             out.write(ByteBuffer.wrap(PNG_SIG));
             out.write(makeIHDRChunk(grays[0].width, grays[0].height));
-            out.write(make_acTLChunk(grays.length));
+            out.write(make_acTLChunk(grays.length, loopCount));
 
             for (int i = 0, seq = 0; i < grays.length; i++) {
-                Gray gray = grays[i];
-                out.write(makeFCTL(gray.width, gray.height, seq++));
-                out.write(makeDAT(seq, i == 0, filterTypeNone(gray.width, gray.height, grays[i].getData())));
+
+                short[] delay = getFractionFromDelay(grays[i].getDelay());
+
+                out.write(makeFCTL(grays[i].width, grays[i].height, seq++, delay[0], delay[1]));
+                out.write(makeDAT(seq, i == 0, filterTypeNone(grays[i].width, grays[i].height, grays[i].getData())));
+
                 if (i > 0) seq++;
             }
 
@@ -64,6 +93,35 @@ class APNGWriter {
         } finally {
             out.close();
         }
+    }
+    
+    /**
+     * Credits to Joop Eggen from Stack Overflow.
+     * @param delayms the delay to change into fraction
+     * @return an array containing the numerator and the denominator
+     * @see <a href="https://stackoverflow.com/a/31586500/8810915">https://stackoverflow.com/a/31586500/8810915</a>
+     */
+    private static short[] getFractionFromDelay(int delayms) {
+        double x = delayms;
+        x /= 1000;
+        final double eps = 0.000_001;
+        int pfound = (int) Math.round(x);
+        int qfound = 1;
+        double errorfound = Math.abs(x - pfound);
+        double error = 1;
+        for (int q = 2; q < 100 && error > eps; ++q) {
+            int p = (int) (x * q);
+            for (int i = 0; i < 2; ++i) { // below and above x
+                error = Math.abs(x - ((double) p / q));
+                if (error < errorfound) {
+                    pfound = p;
+                    qfound = q;
+                    errorfound = error;
+                }
+                ++p;
+            }
+        }
+        return new short[] { (short) pfound, (short) qfound };
     }
 
     private ByteBuffer makeIHDRChunk(int width, int height) { //http://www.w3.org/TR/PNG/#11IHDR
@@ -82,19 +140,19 @@ class APNGWriter {
         return bb;
     }
 
-    protected ByteBuffer make_acTLChunk(int frameCount) {
+    protected ByteBuffer make_acTLChunk(int frameCount, int loopCount) {
         ByteBuffer bb = ByteBuffer.allocate(acTL_TOTAL_LEN);
         bb.putInt(acTL_DATA_LEN);
         bb.putInt(acTL_SIG);
         bb.putInt(frameCount);
-        bb.putInt(0);           // loop count, zero=infinity
+        bb.putInt(loopCount); // 0 : infinite
         addChunkCRC(bb);
         bb.flip();
         return bb;
     }
 
     private void addChunkCRC(ByteBuffer chunkBuffer) {
-        if (chunkBuffer.remaining() != 4)			//CRC32 size 4
+        if (chunkBuffer.remaining() != 4)           //CRC32 size 4
             throw new IllegalArgumentException();
 
         int size = chunkBuffer.position() - 4;
@@ -102,7 +160,7 @@ class APNGWriter {
         if (size <= 0)
             throw new IllegalArgumentException();
 
-        chunkBuffer.position(4);			 //size not covered by CRC
+        chunkBuffer.position(4);             //size not covered by CRC
         byte[] bytes = new byte[size];     // CRC covers only this
         chunkBuffer.get(bytes);
         chunkBuffer.putInt(crc(bytes));
@@ -118,7 +176,7 @@ class APNGWriter {
         return (int) crc.getValue();
     }
 
-    private ByteBuffer makeFCTL(int width, int height, int seqNumber) {
+    private ByteBuffer makeFCTL(int width, int height, int seqNumber, short delay_num, short delay_den) {
         ByteBuffer bb = ByteBuffer.allocate(fcTL_TOTAL_LEN);
 
         bb.putInt(fcTL_DATA_LEN);
@@ -129,10 +187,10 @@ class APNGWriter {
         bb.putInt(height);
         bb.putInt(0);               // x position
         bb.putInt(0);               // y position
-        bb.putShort((short) 10);     // fps num
-        bb.putShort((short) 10);     // fps den
-        bb.put((byte) 1);  	        //dispose 1:clear, 0: do nothing, 2: revert
-        bb.put(ZERO);           	//blend   1:blend, 0: overwrite
+        bb.putShort(delay_num);     // fps num
+        bb.putShort(delay_den);     // fps den
+        bb.put((byte) 1);           //dispose 1:clear, 0: do nothing, 2: revert
+        bb.put(ZERO);               //blend   1:blend, 0: overwrite
 
         addChunkCRC(bb);
 

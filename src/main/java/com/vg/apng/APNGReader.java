@@ -15,7 +15,20 @@ import java.nio.channels.ReadableByteChannel;
 import java.util.zip.DataFormatException;
 import java.util.zip.Inflater;
 
+/**
+ * Read an APNG back into grayscale images.
+ *
+ * @see APNGReader#read(File)
+ */
 class APNGReader {
+
+    /**
+     * Read an APNG back into an array of grayscale images.
+     *
+     * @param file the File to read from
+     * @return an array of grayscale images
+     * @throws IOException if the specified File is invalid
+     */
     public Gray[] read(File file) throws IOException {
         ByteBuffer in = readFile(file);
         in.position(PNG_SIG.length);

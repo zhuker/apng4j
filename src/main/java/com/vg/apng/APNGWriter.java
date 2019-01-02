@@ -9,6 +9,7 @@ import static com.vg.apng.APNG.fdAT_SIG;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.OutputStream;
 import java.io.IOException;
 import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;

@@ -312,7 +312,7 @@ public class Gray {
      * @return the converted BufferedImage.
      */
     public BufferedImage toBufferedImage() {
-        BufferedImage b = new BufferedImage(this.getWidth(), this.getHeight(), BufferedImage.TYPE_BYTE_GRAY);
+        BufferedImage b = new BufferedImage(this.width, this.height, BufferedImage.TYPE_BYTE_GRAY);
         byte[] data = ((DataBufferByte) b.getRaster().getDataBuffer()).getData();
         this.getData().get(data);
         return b;

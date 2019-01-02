@@ -21,9 +21,9 @@ import javax.imageio.ImageIO;
  */
 public class Gray {
 
-    private final int width;
-    private final int height;
-    private final ByteBuffer data;
+    public final int width;
+    public final int height;
+    public final ByteBuffer data;
     // Defaults to 1s
     private int delayms = 1000;
 
@@ -91,14 +91,6 @@ public class Gray {
     
     public void putPixel(int x, int y, int pix) {
         data.put(y * width + x, (byte) pix);
-    }
-
-    public int getWidth() {
-        return width;
-    }
-
-    public int getHeight() {
-        return height;
     }
 
     public Rectangle getBounds() {

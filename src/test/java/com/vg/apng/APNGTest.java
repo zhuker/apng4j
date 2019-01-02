@@ -35,8 +35,8 @@ public class APNGTest {
         Gray[] gr = APNG.read(file);
 
         Assert.assertEquals(3, gr.length);
-        Assert.assertArrayEquals(a0, gr[0].getData().array());
-        Assert.assertArrayEquals(a1, gr[1].getData().array());
-        Assert.assertArrayEquals(a2, gr[2].getData().array());
+        Assert.assertArrayEquals(a0, gr[0].data.array());
+        Assert.assertArrayEquals(a1, gr[1].data.array());
+        Assert.assertArrayEquals(a2, gr[2].data.array());
     }
 }

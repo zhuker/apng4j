@@ -7,7 +7,10 @@ import static com.vg.apng.APNG.acTL_SIG;
 import static com.vg.apng.APNG.fcTL_SIG;
 import static com.vg.apng.APNG.fdAT_SIG;
 
-import java.io.*;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
 import java.nio.channels.WritableByteChannel;
@@ -39,7 +42,7 @@ class APNGWriter {
     public static final int fcTL_TOTAL_LEN = fcTL_DATA_LEN + CHUNK_DELTA;
 
     private static final byte[] IEND_ARR = new byte[] {
-            0,	  0,   0,   0,
+            0,    0,   0,   0,
             'I', 'E', 'N', 'D',
             (byte) 0xae, 0x42,
             0x60, (byte) 0x82 //ae4260820
@@ -68,26 +71,30 @@ class APNGWriter {
             throw new RuntimeException("grays[] is empty");
         }
 
-        try (WritableByteChannel out = Channels.newChannel(os)) {
+        WritableByteChannel out = Channels.newChannel(os);
+        
+        try {
             out.write(ByteBuffer.wrap(PNG_SIG));
-            out.write(makeIHDRChunk(grays[0].getWidth(), grays[0].getHeight()));
+            out.write(makeIHDRChunk(grays[0].width, grays[0].height));
             out.write(make_acTLChunk(grays.length, loopCount));
 
             for (int i = 0, seq = 0; i < grays.length; i++) {
 
                 short[] delay = getFractionFromDelay(grays[i].getDelay());
 
-                out.write(makeFCTL(grays[i].getWidth(), grays[i].getHeight(), seq++, delay[0], delay[1]));
-                out.write(makeDAT(seq, i == 0, filterTypeNone(grays[i].getWidth(), grays[i].getHeight(), grays[i].getData())));
+                out.write(makeFCTL(grays[i].width, grays[i].height, seq++, delay[0], delay[1]));
+                out.write(makeDAT(seq, i == 0, filterTypeNone(grays[i].width, grays[i].height, grays[i].getData())));
 
                 if (i > 0) seq++;
             }
 
             out.write(ByteBuffer.wrap(IEND_ARR));
+        } finally {
+            out.close();
         }
     }
-	
-	/**
+    
+    /**
      * Credits to Joop Eggen from Stack Overflow.
      * @param delayms the delay to change into fraction
      * @return an array containing the numerator and the denominator
@@ -144,7 +151,7 @@ class APNGWriter {
     }
 
     private void addChunkCRC(ByteBuffer chunkBuffer) {
-        if (chunkBuffer.remaining() != 4)			//CRC32 size 4
+        if (chunkBuffer.remaining() != 4)           //CRC32 size 4
             throw new IllegalArgumentException();
 
         int size = chunkBuffer.position() - 4;
@@ -152,7 +159,7 @@ class APNGWriter {
         if (size <= 0)
             throw new IllegalArgumentException();
 
-        chunkBuffer.position(4);			 //size not covered by CRC
+        chunkBuffer.position(4);             //size not covered by CRC
         byte[] bytes = new byte[size];     // CRC covers only this
         chunkBuffer.get(bytes);
         chunkBuffer.putInt(crc(bytes));
@@ -181,8 +188,8 @@ class APNGWriter {
         bb.putInt(0);               // y position
         bb.putShort(delay_num);     // fps num
         bb.putShort(delay_den);     // fps den
-        bb.put((byte) 1);  	        //dispose 1:clear, 0: do nothing, 2: revert
-        bb.put(ZERO);           	//blend   1:blend, 0: overwrite
+        bb.put((byte) 1);           //dispose 1:clear, 0: do nothing, 2: revert
+        bb.put(ZERO);               //blend   1:blend, 0: overwrite
 
         addChunkCRC(bb);
 

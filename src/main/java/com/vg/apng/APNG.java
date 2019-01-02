@@ -18,7 +18,7 @@ public class APNG {
     public static final int fcTL_SIG = 0x6663544c;
     public static final int IEND_SIG = 0x49454e44;
 
-    public static final byte[] PNG_SIG = new byte[] {(byte) 0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a}; //http://www.w3.org/TR/PNG/#5PNG-file-signature
+    public static final byte[] PNG_SIG = new byte[]{(byte) 0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a}; //http://www.w3.org/TR/PNG/#5PNG-file-signature
 
     // Predefined delay values
     public static final int DELAY_500MS = 500;

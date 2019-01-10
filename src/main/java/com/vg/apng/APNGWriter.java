@@ -104,7 +104,7 @@ class APNGWriter {
     private static short[] getFractionFromDelay(int delayms) {
         double x = delayms;
         x /= 1000;
-        final double eps = 0.000_001;
+        final double eps = 0.000001;
         int pfound = (int) Math.round(x);
         int qfound = 1;
         double errorfound = Math.abs(x - pfound);
